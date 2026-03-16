@@ -12,6 +12,13 @@
 bash deploy.sh install
 ```
 
+一键引导安装：
+
+```bash
+curl -fsSL -o install.sh https://raw.githubusercontent.com/YanYuHanYun/nat-panel/main/install.sh
+sudo bash install.sh
+```
+
 卸载：
 
 ```bash
@@ -21,6 +28,7 @@ bash deploy.sh uninstall
 说明：
 
 - `install` 会自动检测系统和 CPU 架构，补齐 Go 与系统依赖，并使用仓库中的 `go.mod` / `go.sum` 进行可重复构建
+- `install.sh` 会先检测并安装 Git，然后克隆 GitHub 仓库并调用 `deploy.sh install`
 - `install` 不会覆盖已经存在的 `/opt/firewall-api/config.yaml`
 - `uninstall` 会停止并移除 systemd 服务、删除安装目录，并询问是否删除数据库文件
 
