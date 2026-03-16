@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>控制面板</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --bg-alt: #eef3fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fbff;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --primary: #2563eb;
+      --primary-soft: rgba(37, 99, 235, 0.10);
+      --success: #16a34a;
+      --danger: #dc2626;
+      --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; min-height: 100%; }
+    body {
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 24%),
+        radial-gradient(circle at top right, rgba(34, 197, 94, 0.10), transparent 20%),
+        linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+    }
+    .hidden { display: none !important; }
+    .page { width: min(1280px, calc(100vw - 28px)); margin: 0 auto; padding: 20px 0 56px; }
+    .hero, .panel, .connect-card, .metric-card, .modal-card, .rule-card, .network-card, .chart-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,251,255,0.95) 100%);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .connect-shell { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+    .connect-card { width: min(860px, 100%); padding: 28px; }
+    .eyebrow { margin: 0 0 10px; color: var(--primary); font-size: 12px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+    h1, h2, h3, h4, p { margin: 0; }
+    h1 { font-size: clamp(30px, 4.6vw, 42px); line-height: 1.14; }
+    h2 { font-size: 22px; }
+    h3 { font-size: 16px; }
+    h4 { font-size: 14px; }
+    p { color: var(--muted); line-height: 1.65; }
+    .stack-sm, .stack-md, .stack-lg { display: grid; }
+    .stack-sm { gap: 10px; }
+    .stack-md { gap: 16px; }
+    .stack-lg { gap: 22px; }
+    .connect-grid, .history-grid, .metric-grid, .summary-grid, .network-grid, .rule-grid, .chart-grid, .form-grid, .control-row, .header-row, .rule-toolbar, .network-overview-grid {
+      display: grid;
+      gap: 16px;
+    }
+    .connect-grid, .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 18px; }
+    .summary-grid { grid-template-columns: 1.2fr 1fr; }
+    .network-grid { grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr); align-items: start; }
+    .network-overview-grid { display: contents; }
+    .summary-grid > *, .network-grid > *, .network-overview-grid > * { min-width: 0; }
+    .rule-grid, .chart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .control-row { grid-template-columns: 1fr auto auto; align-items: center; }
+    .header-row { grid-template-columns: 1fr auto; align-items: start; }
+    .rule-toolbar { grid-template-columns: minmax(0, 1fr) repeat(3, auto); align-items: center; }
+    .span-2 { grid-column: span 2; }
+    .hero { padding: 28px; margin-bottom: 18px; }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; color: var(--muted); font-size: 14px; }
+    .title-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }
+    .version-note { color: var(--muted); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; }
+    .pill { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); padding: 6px 12px; font-size: 12px; font-weight: 700; }
+    label { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    input, select, textarea, button { font: inherit; }
+    input, select, textarea { width: 100%; border: 1px solid #d7dce4; background: #fff; border-radius: var(--radius-sm); padding: 12px 14px; color: var(--ink); transition: border-color 0.16s ease, box-shadow 0.16s ease; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: rgba(37, 99, 235, 0.45); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12); }
+    button { border: 0; border-radius: 999px; padding: 11px 16px; font-weight: 700; cursor: pointer; transition: transform 0.16s ease, opacity 0.16s ease, background-color 0.16s ease; }
+    button:hover { transform: translateY(-1px); }
+    button:disabled { cursor: wait; opacity: 0.72; transform: none; }
+    button.is-loading::after { content: ''; display: inline-block; width: 12px; height: 12px; margin-left: 8px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 999px; animation: spin 0.8s linear infinite; vertical-align: -2px; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px dashed var(--line); }
+    .btn-small { padding: 8px 12px; font-size: 13px; }
+    .history-grid { margin-top: 18px; }
+    .history-item { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
+    .history-item:hover { border-color: rgba(37, 99, 235, 0.26); }
+    .history-url { font-family: var(--mono); font-weight: 700; word-break: break-all; }
+    .history-note { margin-top: 4px; font-size: 13px; color: var(--muted); }
+    .history-actions { display: flex; gap: 8px; }
+    .metric-card { padding: 18px; min-height: 136px; }
+    .metric-kicker { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .metric-value { margin-top: 12px; font-size: 30px; font-weight: 800; line-height: 1.1; }
+    .metric-note { margin-top: 10px; font-size: 13px; color: var(--muted); }
+    .panel { padding: 22px; margin-top: 18px; }
+    .panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
+    .panel-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
+    .kv-list { display: grid; gap: 12px; }
+    .kv-item { display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(15, 23, 42, 0.06); }
+    .kv-item:last-child { border-bottom: 0; }
+    .kv-item strong { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    #diskTableWrap, #networkTableWrap { width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+    #diskTableWrap table, #networkTableWrap table { width: max-content; min-width: 100%; }
+    #networkTableWrap { flex: 1; min-height: 0; overflow-y: auto; }
+    th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid rgba(15, 23, 42, 0.06); vertical-align: top; }
+    th { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .rule-grid { margin-top: 8px; }
+    .rule-card { padding: 18px; display: grid; gap: 14px; }
+    .rule-top { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+    .rule-id { font-family: var(--mono); font-size: 13px; color: var(--muted); word-break: break-all; }
+    .rule-name { font-size: 18px; font-weight: 800; line-height: 1.25; }
+    .rule-target { font-weight: 700; margin-top: 6px; }
+    .rule-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .meta-box { background: var(--surface-soft); border: 1px solid rgba(37, 99, 235, 0.08); border-radius: 14px; padding: 12px; }
+    .meta-label { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .meta-value { margin-top: 8px; font-size: 18px; font-weight: 800; }
+    .rule-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .network-card, .chart-card { padding: 18px; }
+    .network-focus-card { grid-column: 1; grid-row: 1; }
+    .network-list-card { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: hidden; }
+    .network-trend-card { grid-column: 1 / -1; grid-row: 2; }
+    .nat-card {
+      padding: 18px;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      border-radius: 14px;
+      background: #fff;
+    }
+    .nat-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .nat-output {
+      margin: 0;
+      padding: 14px;
+      border-radius: 14px;
+      background: #0f172a;
+      color: #dbeafe;
+      font-size: 12px;
+      line-height: 1.55;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: var(--mono);
+      min-height: 180px;
+    }
+    .network-metrics, .chart-bars { display: grid; gap: 12px; margin-top: 14px; }
+    .network-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .trend-card-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .trend-meta { font-size: 12px; color: var(--muted); }
+    .trend-shell { margin-top: 14px; border: 1px solid rgba(15, 23, 42, 0.06); border-radius: 14px; background: #fff; padding: 14px; }
+    .trend-svg { width: 100%; height: 160px; display: block; }
+    .trend-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; width: 100%; }
+    .trend-legend { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+    .trend-dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
+    .trend-dot.tx { background: #2563eb; }
+    .trend-dot.rx { background: #16a34a; }
+    .network-stat { padding: 14px; border: 1px solid rgba(15, 23, 42, 0.06); border-radius: 14px; background: #fff; }
+    .network-stat .label, .chart-label { font-size: 12px; color: var(--muted); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .network-stat .value { margin-top: 8px; font-size: 22px; font-weight: 800; }
+    .chart-row { display: grid; grid-template-columns: 76px 1fr auto; gap: 10px; align-items: center; }
+    .chart-track { position: relative; height: 12px; border-radius: 999px; background: #e9eef7; overflow: hidden; }
+    .chart-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; }
+    .fill-total { background: linear-gradient(90deg, #2563eb, #60a5fa); }
+    .fill-tcp { background: linear-gradient(90deg, #16a34a, #4ade80); }
+    .fill-udp { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .mono { font-family: var(--mono); }
+    .muted { color: var(--muted); }
+    .empty { margin-top: 10px; padding: 20px; text-align: center; border-radius: 14px; border: 1px dashed var(--line); color: var(--muted); background: rgba(255,255,255,0.8); }
+    .modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.34); display: grid; place-items: center; padding: 18px; z-index: 50; }
+    .modal-card { width: min(980px, 100%); max-height: calc(100vh - 36px); overflow: auto; padding: 22px; }
+    .modal-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+    .modal-footer { margin-top: 18px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+    #statsModal .chart-grid + .chart-grid { margin-top: 18px; }
+    .toast { position: fixed; top: 18px; right: 18px; z-index: 60; max-width: min(380px, calc(100vw - 24px)); padding: 12px 16px; border-radius: 14px; color: #fff; box-shadow: var(--shadow); }
+    .toast.info { background: var(--primary); }
+    .toast.error { background: var(--danger); }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @media (max-width: 1100px) {
+      .metric-grid, .summary-grid, .network-grid, .rule-grid, .chart-grid, .control-row, .header-row, .connect-grid, .form-grid, .network-metrics, .rule-toolbar, .trend-grid { grid-template-columns: 1fr; }
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .span-2 { grid-column: span 1; }
+      .rule-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .chart-row { grid-template-columns: 64px 1fr; }
+      .chart-value { grid-column: 2; }
+      .network-overview-grid { display: grid; grid-template-columns: 1fr; }
+      .network-focus-card, .network-list-card, .network-trend-card { grid-column: auto; grid-row: auto; height: auto; }
+    }
+    @media (max-width: 700px) {
+      .page { width: min(100vw - 16px, 100%); padding-top: 12px; }
+      .connect-shell { padding: 10px; }
+      .connect-card, .panel, .hero, .modal-card, .metric-card, .rule-card, .network-card, .chart-card { padding: 16px; }
+      .metric-grid { grid-template-columns: 1fr; }
+      .history-item, .rule-top, .panel-header, .modal-header { grid-template-columns: 1fr; display: grid; }
+      .panel-actions, .rule-actions, .history-actions, .modal-footer { justify-content: flex-start; }
+      .history-actions, .panel-actions, .rule-actions, .modal-footer { display: flex; flex-wrap: wrap; gap: 8px; }
+      .rule-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+      .meta-box { padding: 10px; }
+      .meta-value { font-size: 16px; }
+      .network-card, .chart-card { overflow: hidden; }
+      .network-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .network-stat { padding: 10px; min-width: 0; }
+      .network-stat .label, .chart-label { font-size: 11px; letter-spacing: 0.04em; }
+      .network-stat .value { font-size: 16px; line-height: 1.2; word-break: break-word; }
+      .chart-grid { grid-template-columns: 1fr; gap: 12px; }
+      .trend-card-header { align-items: flex-start; }
+      .trend-shell { padding: 10px; overflow: hidden; }
+      .trend-svg { height: 120px; }
+      .trend-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .kv-item { grid-template-columns: 1fr; }
+      #diskTableWrap, #networkTableWrap { width: 100%; max-width: 100%; overflow-x: auto; }
+      #diskTableWrap table, #networkTableWrap table { width: max-content; min-width: 440px; }
+      table { font-size: 12px; }
+      th, td { white-space: nowrap; padding: 8px 8px; }
+      .chart-row { grid-template-columns: 64px 1fr auto; }
+      .chart-value { grid-column: auto; }
+    }
+    @media (max-width: 420px) {
+      .rule-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+      .meta-box { padding: 8px; }
+      .meta-label { font-size: 10px; }
+      .meta-value { font-size: 14px; }
+      .network-metrics, .trend-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+      .network-stat { padding: 8px; }
+      .network-stat .value { font-size: 14px; }
+      #diskTableWrap table, #networkTableWrap table { min-width: 400px; }
+      .trend-svg { height: 104px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="connectView" class="connect-shell">
+    <div class="connect-card stack-lg">
+      <div class="stack-sm">
+        <div class="eyebrow">Console Access</div>
+        <h1>连接服务实例</h1>
+        <p>输入服务地址与访问令牌后即可进入控制台。最近使用的连接会保存在当前浏览器，便于后续快速接入。</p>
+      </div>
+      <form id="connectForm" class="connect-grid">
+        <div>
+          <label for="connectUrl">API URL</label>
+          <input id="connectUrl" name="baseUrl" placeholder="http://127.0.0.1:8080">
+        </div>
+        <div>
+          <label for="connectToken">Bearer Token</label>
+          <input id="connectToken" name="token" type="password" placeholder="输入 Bearer Token">
+        </div>
+        <div class="span-2 control-row">
+          <div class="muted">连接建立后将自动同步系统概览、转发规则、网络指标与 NAT 信息。</div>
+          <button type="button" class="btn-secondary" id="fillCurrentOrigin">使用当前地址</button>
+          <button type="submit" class="btn-primary" id="connectButton">接入控制台</button>
+        </div>
+      </form>
+      <div class="stack-md">
+        <div class="header-row">
+          <div>
+            <h2>最近连接</h2>
+            <p>可直接复用最近接入的实例，也可以单独删除本地保存的连接记录。</p>
+          </div>
+          <button type="button" class="btn-ghost btn-small" id="clearHistoryButton">清空历史</button>
+        </div>
+        <div id="historyList" class="history-grid"></div>
+      </div>
+    </div>
+  </div>
+  <div id="appView" class="hidden">
+    <div class="page">
+      <section class="hero">
+        <div class="header-row">
+          <div class="stack-sm">
+            <div class="eyebrow">Operations Console</div>
+            <div class="title-row"><h1>控制面板</h1><div class="version-note">Version - <span id="appVersion">-</span></div></div>
+            <p>当前连接 <span id="currentBaseUrl" class="mono">-</span></p>
+            <div class="hero-meta">
+              <span class="pill" id="statusBadge">等待连接</span>
+              <span>实时采集</span>
+              <span id="lastRefreshText">尚未刷新</span>
+            </div>
+          </div>
+          <div class="panel-actions">
+            <button type="button" class="btn-secondary" id="refreshNowButton">立即刷新</button>
+            <button type="button" class="btn-secondary" id="switchBackendButton">切换后端</button>
+          </div>
+        </div>
+      </section>
+      <section class="metric-grid">
+        <article class="metric-card"><div class="metric-kicker">CPU 使用率</div><div class="metric-value" id="ovCpu">-</div><div class="metric-note" id="ovCpuNote">-</div></article>
+        <article class="metric-card"><div class="metric-kicker">内存使用率</div><div class="metric-value" id="ovMemory">-</div><div class="metric-note" id="ovMemoryNote">-</div></article>
+        <article class="metric-card"><div class="metric-kicker">主机与内核</div><div class="metric-value" id="ovHostname">-</div><div class="metric-note" id="ovPlatform">-</div></article>
+        <article class="metric-card"><div class="metric-kicker">总网络速率</div><div class="metric-value" id="ovNet">-</div><div class="metric-note" id="ovUptime">-</div></article>
+      </section>
+      <section class="panel">
+        <div class="panel-header"><div><h2>转发规则</h2><p>支持按协议族筛选、按关键字段检索，并按更新时间、端口或流量指标排序。</p></div></div>
+        <div class="rule-toolbar">
+          <input id="ruleSearch" placeholder="搜索规则 ID、目标地址、端口或协议">
+          <select id="ruleSort">
+            <option value="updatedDesc">按更新时间</option>
+            <option value="localPortAsc">按本地端口</option>
+            <option value="trafficDesc">按累计流量</option>
+            <option value="realtimeDesc">按实时速率</option>
+          </select>
+          <select id="ruleFamilyFilter"><option value="all">全部</option><option value="ipv4">IPv4</option><option value="ipv6">IPv6</option></select>
+          <button type="button" class="btn-primary" id="createRuleButton">新增规则</button>
+        </div>
+        <div id="rulesWrap" class="rule-grid"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-header"><div><h2>系统概览</h2><p>展示主机基础信息、转发状态、运行时长与存储资源概览。</p></div></div>
+        <div class="summary-grid">
+          <div class="kv-list">
+            <div class="kv-item"><strong>内核</strong><div id="sysKernel">-</div></div>
+            <div class="kv-item"><strong>架构</strong><div id="sysArch">-</div></div>
+            <div class="kv-item"><strong>虚拟化</strong><div id="sysVirtualization">-</div></div>
+            <div class="kv-item"><strong>运行时间</strong><div id="sysUptime">-</div></div>
+            <div class="kv-item"><strong>转发状态</strong><div id="sysForward">-</div></div>
+            <div class="kv-item"><strong>Masquerade</strong><div id="sysMasq">-</div></div>
+          </div>
+          <div>
+            <h3>磁盘信息</h3>
+            <div id="diskTableWrap"></div>
+          </div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-header"><div><h2>网络监控</h2><p>按网卡查看累计流量、实时吞吐、错误计数与丢包情况。</p></div><div class="panel-actions"><select id="networkInterfaceSelect"></select></div></div>
+        <div class="network-grid">
+          <div class="network-overview-grid">
+            <div class="network-card network-focus-card"><h3>选中网卡概览</h3><div class="network-metrics" id="networkMetrics"></div></div>
+            <div class="chart-card network-trend-card">
+              <div class="trend-card-header">
+                <div>
+                  <h3>吞吐趋势</h3>
+                  <div class="trend-meta">基于最近一段时间的采样结果展示上行与下行吞吐变化。</div>
+                </div>
+                <div class="trend-legend"><span class="trend-dot tx"></span>上传 <span class="trend-dot rx"></span>下载</div>
+              </div>
+              <div class="trend-shell">
+                <svg id="networkTrendChart" class="trend-svg" viewBox="0 0 600 160" preserveAspectRatio="none" aria-label="network trend"></svg>
+                <div id="networkTrendStats" class="trend-grid"></div>
+              </div>
+            </div>
+          </div>
+          <div class="network-card network-list-card"><h3>网卡列表</h3><div id="networkTableWrap"></div></div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-header"><div><h2>NAT 视图</h2><p>展示当前 NAT 表与地址转换链路，便于与转发规则联动排查。</p></div></div>
+        <div class="nat-card">
+          <div class="nat-toolbar">
+            <div class="muted">当前 NAT 规则视图</div>
+            <select id="natFamilyFilter"><option value="all">全部</option><option value="ipv4">IPv4</option><option value="ipv6">IPv6</option></select>
+          </div>
+          <pre id="natOutput" class="nat-output">正在加载 NAT 数据...</pre>
+        </div>
+      </section>
+    </div>
+  </div>
+  <div id="ruleFormModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-header"><div><div class="eyebrow">Rule Form</div><h2 id="ruleFormTitle">新增规则</h2></div><button type="button" class="btn-secondary btn-small" data-close="ruleFormModal">关闭</button></div>
+      <form id="ruleForm" class="form-grid">
+        <input type="hidden" id="ruleFormId">
+        <div class="span-2"><label for="ruleName">名称/备注</label><input id="ruleName" maxlength="200" placeholder="给这条规则起个名字或写点备注"></div>
+        <div><label for="ruleFamily">Family</label><select id="ruleFamily"><option value="ipv4">ipv4</option><option value="ipv6">ipv6</option></select></div>
+        <div><label for="ruleProtocol">Protocol</label><select id="ruleProtocol"><option value="tcp">tcp</option><option value="udp">udp</option><option value="all">all</option></select></div>
+        <div><label for="ruleLocalPort">Local Port</label><input id="ruleLocalPort" type="number" min="1" max="65535" required></div>
+        <div><label for="ruleInboundInterface">Inbound Interface</label><select id="ruleInboundInterface"></select></div>
+        <div><label for="ruleInboundIp">Inbound IP</label><select id="ruleInboundIp"></select></div>
+        <div><label for="ruleTargetIp">Target IP</label><input id="ruleTargetIp" required></div>
+        <div><label for="ruleTargetPort">Target Port</label><input id="ruleTargetPort" type="number" min="1" max="65535" required></div>
+        <div><label for="ruleOutboundInterface">Outbound Interface</label><select id="ruleOutboundInterface"></select></div>
+        <div><label for="ruleOutboundIp">Outbound IP</label><select id="ruleOutboundIp"></select></div>
+        <div><label for="ruleConnLimit">Conn Limit</label><input id="ruleConnLimit" type="number" min="0" value="0"></div>
+        <div class="span-2"><label for="ruleBandwidth">Bandwidth Kbps</label><input id="ruleBandwidth" type="number" min="0" value="0"></div>
+        <div class="span-2 modal-footer"><button type="button" class="btn-secondary" data-close="ruleFormModal">取消</button><button type="submit" class="btn-primary" id="ruleFormSubmit">保存</button></div>
+      </form>
+    </div>
+  </div>
+  <div id="statsModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-header"><div><div class="eyebrow">Rule Metrics</div><h2 id="statsTitle">规则指标详情</h2><p id="statsMeta" class="muted mono">-</p></div><button type="button" class="btn-secondary btn-small" data-close="statsModal">关闭</button></div>
+      <div class="chart-grid">
+        <section class="chart-card"><h3>累计流量</h3><p class="muted">展示总流量以及 TCP、UDP 分项累计值。</p><div class="chart-bars" id="cumulativeChart"></div></section>
+        <section class="chart-card"><h3>实时吞吐</h3><p class="muted">展示当前采样周期内的吞吐与报文速率。</p><div class="chart-bars" id="realtimeChart"></div></section>
+      </div>
+      <div class="chart-grid">
+        <section class="chart-card"><h3>累计包数</h3><div class="network-metrics" id="packetTotals"></div></section>
+        <section class="chart-card"><h3>实时包速率</h3><div class="network-metrics" id="packetRates"></div><div style="margin-top:12px;" class="muted">更新时间：<span id="statsUpdated">-</span></div></section>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+  <script>
+    const HISTORY_KEY = 'fwapi.panel.connectionHistory.v4';
+    const LAST_USED_KEY = 'fwapi.panel.lastConnection.v4';
+    const REFRESH_INTERVAL_MS = 1000;
+    const STATS_REFRESH_MS = 1000;
+    const NETWORK_TREND_LIMIT = 24;
+    const state = { connection: null, history: [], rules: [], systemData: null, natFamily: 'all', familyFilter: 'all', ruleSearch: '', ruleSort: 'updatedDesc', refreshTimer: null, statsTimer: null, currentStatsRuleId: null, currentInterface: null, networkHistory: {}, ruleFormMode: 'create', pendingRuleActions: {}, savingRule: false, connecting: false };
+    function $(id) { return document.getElementById(id); }
+    function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, function(char) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]; }); }
+    function normalizeBaseUrl(value) { const trimmed = String(value || '').trim(); return trimmed ? trimmed.replace(/\/$/, '') : ''; }
+    function bytes(value) { const number = Number(value || 0); const units = ['B', 'KB', 'MB', 'GB', 'TB']; let current = number; let index = 0; while (current >= 1024 && index < units.length - 1) { current /= 1024; index += 1; } const digits = index === 0 ? 0 : current >= 100 ? 0 : current >= 10 ? 1 : 2; return `${current.toFixed(digits)} ${units[index]}`; }
+    function rate(value) { return `${bytes(value)}/s`; }
+    function percent(value) { return `${Number(value || 0).toFixed(2)}%`; }
+    function formatDate(value) { if (!value) return '-'; try { return new Date(value).toLocaleString(); } catch (_) { return String(value); } }
+    function formatUnix(unix) { return unix ? new Date(unix * 1000).toLocaleString() : '-'; }
+    function toTimestamp(value) { const time = Date.parse(value || ''); return Number.isNaN(time) ? 0 : time; }
+    function showToast(message, type = 'info') { const toast = $('toast'); toast.className = `toast ${type}`; toast.textContent = message; toast.classList.remove('hidden'); window.clearTimeout(showToast.timer); showToast.timer = window.setTimeout(function() { toast.classList.add('hidden'); }, 3200); }
+    function loadHistory() { try { state.history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch (_) { state.history = []; } state.history = state.history.filter(function(item) { return item && item.baseUrl && item.token; }).sort(function(a, b) { return Number(b.lastUsed || 0) - Number(a.lastUsed || 0); }); }
+    function saveHistory() { localStorage.setItem(HISTORY_KEY, JSON.stringify(state.history.slice(0, 12))); }
+    function upsertHistory(entry) { const id = `${entry.baseUrl}::${entry.token}`; const next = state.history.filter(function(item) { return `${item.baseUrl}::${item.token}` !== id; }); next.unshift({ id: id, baseUrl: entry.baseUrl, token: entry.token, lastUsed: Date.now() }); state.history = next.slice(0, 12); saveHistory(); localStorage.setItem(LAST_USED_KEY, id); renderHistory(); }
+    function removeHistoryItem(id) { state.history = state.history.filter(function(item) { return item.id !== id; }); saveHistory(); if (localStorage.getItem(LAST_USED_KEY) === id) { localStorage.removeItem(LAST_USED_KEY); } renderHistory(); }
+    function renderHistory() { const host = $('historyList'); if (!state.history.length) { host.innerHTML = '<div class="empty">暂无历史连接。完成首次接入后，这里会自动保存最近使用的实例。</div>'; return; } host.innerHTML = state.history.map(function(item) { return `<div class="history-item" data-history-id="${escapeHtml(item.id)}"><div><div class="history-url">${escapeHtml(item.baseUrl)}</div><div class="history-note">最后使用：${new Date(item.lastUsed).toLocaleString()} · Token：${escapeHtml(item.token.slice(0, 4))}****</div></div><div class="history-actions"><button type="button" class="btn-secondary btn-small" data-history-connect="${escapeHtml(item.id)}">连接</button><button type="button" class="btn-danger btn-small" data-history-delete="${escapeHtml(item.id)}">删除</button></div></div>`; }).join(''); }
+    async function apiRequest(baseUrl, token, path, options = {}) { const headers = Object.assign({}, options.headers || {}); if (token) headers.Authorization = `Bearer ${token}`; if (options.body != null && !headers['Content-Type']) headers['Content-Type'] = 'application/json'; const response = await fetch(`${normalizeBaseUrl(baseUrl)}${path}`, Object.assign({}, options, { headers: headers })); const text = await response.text(); let data = {}; try { data = text ? JSON.parse(text) : {}; } catch (_) { data = { raw: text }; } if (!response.ok) throw new Error(data.error || data.raw || `HTTP ${response.status}`); return data; }
+    function stopAutoRefresh() { if (state.refreshTimer) { window.clearInterval(state.refreshTimer); state.refreshTimer = null; } }
+    function startAutoRefresh() { stopAutoRefresh(); state.refreshTimer = window.setInterval(function() { refreshAll().catch(function(error) { showToast(error.message, 'error'); }); }, REFRESH_INTERVAL_MS); }
+    function stopStatsPolling() { if (state.statsTimer) { window.clearInterval(state.statsTimer); state.statsTimer = null; } state.currentStatsRuleId = null; }
+    function startStatsPolling(ruleId) { stopStatsPolling(); state.currentStatsRuleId = ruleId; state.statsTimer = window.setInterval(function() { if (!state.currentStatsRuleId) return; loadRuleStats(state.currentStatsRuleId).catch(function() {}); }, STATS_REFRESH_MS); }
+    function showConnectView(prefill) { stopAutoRefresh(); stopStatsPolling(); $('connectView').classList.remove('hidden'); $('appView').classList.add('hidden'); const latest = prefill || state.history[0] || null; $('connectUrl').value = latest ? latest.baseUrl : window.location.origin; $('connectToken').value = latest ? latest.token : ''; renderHistory(); }
+    function showAppView() { $('connectView').classList.add('hidden'); $('appView').classList.remove('hidden'); $('currentBaseUrl').textContent = state.connection.baseUrl; }
+    function setConnecting(loading) { state.connecting = loading; $('connectButton').disabled = loading; $('connectButton').classList.toggle('is-loading', loading); }
+    async function connectToBackend(baseUrl, token) { const normalized = normalizeBaseUrl(baseUrl); if (!normalized || !String(token || '').trim()) { showToast('请输入完整的 URL 和 Token', 'error'); return; } if (state.connecting) return; setConnecting(true); try { await apiRequest(normalized, token, '/api/system'); state.connection = { baseUrl: normalized, token: String(token).trim() }; upsertHistory(state.connection); showAppView(); await refreshAll(); startAutoRefresh(); showToast(`已连接 ${normalized}`); } catch (error) { state.connection = null; showConnectView({ baseUrl: normalized, token: String(token).trim() }); showToast(error.message, 'error'); } finally { setConnecting(false); } }
+    function updateNetworkHistory(systemData) {
+      const interfaces = ((systemData.network || {}).interfaces) || [];
+      const seen = {};
+      interfaces.forEach(function(item) {
+        const history = state.networkHistory[item.name] || [];
+        history.push({ tx: Number(item.txBytesPerSec || 0), rx: Number(item.rxBytesPerSec || 0), at: Date.now() });
+        state.networkHistory[item.name] = history.slice(-NETWORK_TREND_LIMIT);
+        seen[item.name] = true;
+      });
+      Object.keys(state.networkHistory).forEach(function(name) {
+        if (!seen[name]) delete state.networkHistory[name];
+      });
+    }
+
+    function renderStatus(systemData) { const status = (systemData || {}).status || {}; $('statusBadge').textContent = `${status.os || '-'} · IPv4 ${status.ipForward4 ? 'ON' : 'OFF'} · IPv6 ${status.ipForward6 ? 'ON' : 'OFF'}`; }
+    function renderNAT() { const nat = (state.systemData || {}).nat || {}; if (state.natFamily === 'ipv4') { $('natOutput').textContent = nat.ipv4 || '当前未返回 IPv4 NAT 数据'; return; } if (state.natFamily === 'ipv6') { $('natOutput').textContent = nat.ipv6 || '当前未返回 IPv6 NAT 数据'; return; } $('natOutput').textContent = [`### IPv4 ###\n${nat.ipv4 || ''}`, `### IPv6 ###\n${nat.ipv6 || ''}`].join('\n\n').trim() || '当前未返回 NAT 规则数据'; }
+    function familyAddressLabel(address) { return `${address.address}/${address.prefix}`; }
+    function interfaceOptionsForFamily(family) {
+      const normalized = family === 'ipv6' ? 'ipv6' : 'ipv4';
+      const interfaces = (((state.systemData || {}).network || {}).interfaces) || [];
+      return interfaces.map(function(item) {
+        return {
+          name: item.name,
+          addresses: (item.addresses || []).filter(function(address) { return address.family === normalized; })
+        };
+      }).filter(function(item) { return item.addresses.length > 0; });
+    }
+    function allAddressOptionsForFamily(family) {
+      const seen = Object.create(null);
+      return interfaceOptionsForFamily(family).reduce(function(result, item) {
+        item.addresses.forEach(function(address) {
+          const key = `${address.address}/${address.prefix}`;
+          if (seen[key]) return;
+          seen[key] = true;
+          result.push({ address: address.address, prefix: address.prefix, family: address.family, interfaceName: item.name });
+        });
+        return result;
+      }, []);
+    }
+    function findInterfaceNameByAddress(family, ip) {
+      if (!ip) return '';
+      const match = interfaceOptionsForFamily(family).find(function(item) {
+        return item.addresses.some(function(address) { return address.address === ip; });
+      });
+      return match ? match.name : '';
+    }
+    function populateRuleAddressSelect(kind, family, selectedInterface, selectedIp) {
+      const interfaceSelect = $(`rule${kind}Interface`);
+      const ipSelect = $(`rule${kind}Ip`);
+      const interfaceOptions = interfaceOptionsForFamily(family);
+      const interfacePlaceholder = kind === 'Inbound' ? '不限制入口网卡' : '使用默认出口路径';
+      const ipPlaceholder = kind === 'Inbound' ? '不限制入口 IP' : '使用默认出口地址';
+      let nextInterface = selectedInterface || '';
+      if (!nextInterface && selectedIp) {
+        nextInterface = findInterfaceNameByAddress(family, selectedIp);
+      }
+
+      interfaceSelect.innerHTML = [`<option value="">${interfacePlaceholder}</option>`].concat(interfaceOptions.map(function(item) {
+        return `<option value="${escapeHtml(item.name)}" ${item.name === nextInterface ? 'selected' : ''}>${escapeHtml(item.name)}</option>`;
+      })).join('');
+
+      const ipOptions = allAddressOptionsForFamily(family);
+      if (selectedIp && !ipOptions.some(function(item) { return item.address === selectedIp; })) {
+        ipOptions.unshift({ address: selectedIp, prefix: selectedIp.indexOf(':') >= 0 ? 128 : 32, family: family });
+      }
+      ipSelect.innerHTML = [`<option value="">${ipPlaceholder}</option>`].concat(ipOptions.map(function(item) {
+        return `<option value="${escapeHtml(item.address)}" ${item.address === selectedIp ? 'selected' : ''}>${escapeHtml(familyAddressLabel(item))}</option>`;
+      })).join('');
+      if (!selectedIp) {
+        ipSelect.value = '';
+      }
+    }
+    function syncRuleAddressSelectors(selectedValues) {
+      const family = $('ruleFamily').value || 'ipv4';
+      const values = selectedValues || {};
+      populateRuleAddressSelect('Inbound', family, values.inboundInterface != null ? values.inboundInterface : $('ruleInboundInterface').value, values.inboundIp != null ? values.inboundIp : $('ruleInboundIp').value);
+      populateRuleAddressSelect('Outbound', family, values.outboundInterface != null ? values.outboundInterface : $('ruleOutboundInterface').value, values.outboundIp != null ? values.outboundIp : $('ruleOutboundIp').value);
+    }
+    function renderSystem(systemData) { const status = systemData.status || {}; const system = systemData.system || {}; const cpu = systemData.cpu || {}; const memory = systemData.memory || {}; const uptime = systemData.uptime || {}; const network = (systemData.network || {}).summary || {}; const disks = systemData.disk || []; $('appVersion').textContent = systemData.version || '-'; $('ovCpu').textContent = percent(cpu.usagePercent || 0); $('ovCpuNote').textContent = cpu.modelName || '-'; $('ovMemory').textContent = percent(memory.usedPercent || 0); $('ovMemoryNote').textContent = `${bytes(memory.used)} / ${bytes(memory.total)}`; $('ovHostname').textContent = system.hostname || '-'; $('ovPlatform').textContent = [system.platform, system.platformVersion, system.kernelVersion].filter(Boolean).join(' / ') || '-'; $('ovNet').textContent = `${network.totalTxHuman || rate(network.totalTxBps)} ↑ / ${network.totalRxHuman || rate(network.totalRxBps)} ↓`; $('ovUptime').textContent = uptime.uptimeReadable || '-'; $('lastRefreshText').textContent = `最近刷新 ${new Date().toLocaleTimeString()}`; $('sysKernel').textContent = system.kernelVersion || '-'; $('sysArch').textContent = [system.kernelArch, system.goOS, system.goArch].filter(Boolean).join(' / ') || '-'; $('sysVirtualization').textContent = [system.virtualization, system.virtualizationRole].filter(Boolean).join(' / ') || '-'; $('sysUptime').textContent = `${uptime.uptimeReadable || '-'}（开机 ${formatDate((uptime.bootTime || 0) * 1000)}）`; $('sysForward').textContent = `IPv4: ${status.ipForward4 ? 'ON' : 'OFF'} · IPv6: ${status.ipForward6 ? 'ON' : 'OFF'}`; $('sysMasq').textContent = `IPv4: ${status.ipv4Masquerade ? 'ON' : 'OFF'} · IPv6: ${status.ipv6Masquerade ? 'ON' : 'OFF'}`; if (!disks.length) { $('diskTableWrap').innerHTML = '<div class="empty">暂无磁盘信息</div>'; return; } $('diskTableWrap').innerHTML = `<table><thead><tr><th>挂载点</th><th>总量</th><th>已用</th><th>空闲</th><th>使用率</th></tr></thead><tbody>${disks.map(function(item) { return `<tr><td data-label="挂载点"><div>${escapeHtml(item.mountpoint)}</div><div class="muted mono">${escapeHtml(item.device || '-')}</div></td><td data-label="总量">${bytes(item.total)}</td><td data-label="已用">${bytes(item.used)}</td><td data-label="空闲">${bytes(item.free)}</td><td data-label="使用率">${percent(item.usedPercent)}</td></tr>`; }).join('')}</tbody></table>`; }
+    function renderTrendChart(points) {
+      const svg = $('networkTrendChart');
+      if (!points.length) {
+        svg.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#94a3b8" font-size="14">暂无趋势数据</text>';
+        $('networkTrendStats').innerHTML = '<div class="empty">等待采样完成后展示吞吐趋势。</div>';
+        return;
+      }
+
+      const width = 600;
+      const height = 160;
+      const padding = 12;
+      const maxValue = Math.max.apply(null, points.map(function(point) { return Math.max(point.tx, point.rx); }).concat([1]));
+      function buildLine(key) {
+        return points.map(function(point, index) {
+          const x = padding + ((width - padding * 2) * index / Math.max(points.length - 1, 1));
+          const y = height - padding - ((height - padding * 2) * (Number(point[key] || 0) / maxValue));
+          return `${x},${y}`;
+        }).join(' ');
+      }
+
+      const grid = [0.25, 0.5, 0.75].map(function(scale) {
+        const y = height - padding - ((height - padding * 2) * scale);
+        return `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="#e5e7eb" stroke-dasharray="4 4" />`;
+      }).join('');
+
+      svg.innerHTML = `
+        <rect x="0" y="0" width="${width}" height="${height}" fill="#ffffff" rx="10" ry="10"></rect>
+        ${grid}
+        <polyline fill="none" stroke="#2563eb" stroke-width="3" points="${buildLine('tx')}"></polyline>
+        <polyline fill="none" stroke="#16a34a" stroke-width="3" points="${buildLine('rx')}"></polyline>
+      `;
+
+      const latest = points[points.length - 1] || { tx: 0, rx: 0 };
+      const txPeak = Math.max.apply(null, points.map(function(point) { return Number(point.tx || 0); }).concat([0]));
+      const rxPeak = Math.max.apply(null, points.map(function(point) { return Number(point.rx || 0); }).concat([0]));
+      $('networkTrendStats').innerHTML = [
+        { label: '当前上传', value: rate(latest.tx || 0) },
+        { label: '当前下载', value: rate(latest.rx || 0) },
+        { label: '上传峰值', value: rate(txPeak) },
+        { label: '下载峰值', value: rate(rxPeak) }
+      ].map(function(item) {
+        return `<div class="network-stat"><div class="label">${item.label}</div><div class="value">${item.value}</div></div>`;
+      }).join('');
+    }
+
+    function renderNetwork(systemData) { const interfaces = ((systemData.network || {}).interfaces) || []; const select = $('networkInterfaceSelect'); if (!interfaces.length) { select.innerHTML = '<option value="">无可用网卡</option>'; $('networkMetrics').innerHTML = '<div class="empty">暂无网卡数据</div>'; $('networkTableWrap').innerHTML = '<div class="empty">暂无网卡数据</div>'; renderTrendChart([]); return; } if (!state.currentInterface || !interfaces.some(function(item) { return item.name === state.currentInterface; })) state.currentInterface = interfaces[0].name; select.innerHTML = interfaces.map(function(item) { return `<option value="${escapeHtml(item.name)}" ${item.name === state.currentInterface ? 'selected' : ''}>${escapeHtml(item.name)}</option>`; }).join(''); const current = interfaces.find(function(item) { return item.name === state.currentInterface; }) || interfaces[0]; $('networkMetrics').innerHTML = [['累计发送', bytes(current.bytesSent)], ['累计接收', bytes(current.bytesRecv)], ['实时上传', current.txHuman || rate(current.txBytesPerSec)], ['实时下载', current.rxHuman || rate(current.rxBytesPerSec)], ['发送包数', String(current.packetsSent || 0)], ['接收包数', String(current.packetsRecv || 0)], ['发送错误', String(current.errout || 0)], ['接收错误', String(current.errin || 0)], ['发送丢包', String(current.dropout || 0)], ['接收丢包', String(current.dropin || 0)]].map(function(pair) { return `<div class="network-stat"><div class="label">${pair[0]}</div><div class="value">${pair[1]}</div></div>`; }).join(''); $('networkTableWrap').innerHTML = `<table><thead><tr><th>网卡</th><th>累计发送</th><th>累计接收</th><th>上行吞吐</th><th>下行吞吐</th><th>错误</th></tr></thead><tbody>${interfaces.map(function(item) { return `<tr><td data-label="网卡"><div class="mono">${escapeHtml(item.name)}</div></td><td data-label="累计发送">${bytes(item.bytesSent)}</td><td data-label="累计接收">${bytes(item.bytesRecv)}</td><td data-label="上行吞吐">${item.txHuman || rate(item.txBytesPerSec)}</td><td data-label="下行吞吐">${item.rxHuman || rate(item.rxBytesPerSec)}</td><td data-label="错误">in ${item.errin || 0} / out ${item.errout || 0}</td></tr>`; }).join('')}</tbody></table>`; renderTrendChart(state.networkHistory[state.currentInterface] || []); }
+    function filterAndSortRules(items) {
+      const keyword = state.ruleSearch.trim().toLowerCase();
+      const filtered = items.filter(function(item) {
+        if (!keyword) return true;
+        const text = [item.name, item.id, item.inboundIp, item.targetIp, item.outboundIp, item.targetPort, item.localPort, item.protocol, item.family].join(' ').toLowerCase();
+        return text.indexOf(keyword) !== -1;
+      });
+      filtered.sort(function(left, right) {
+        if (state.ruleSort === 'localPortAsc') return Number(left.localPort || 0) - Number(right.localPort || 0);
+        if (state.ruleSort === 'trafficDesc') return Number((right.total || {}).trafficBytes || 0) - Number((left.total || {}).trafficBytes || 0);
+        if (state.ruleSort === 'realtimeDesc') return Number((((right.realtime || {}).total || {}).bytesPerSec || 0)) - Number((((left.realtime || {}).total || {}).bytesPerSec || 0));
+        return toTimestamp(right.updatedAt) - toTimestamp(left.updatedAt);
+      });
+      return filtered;
+    }
+    function ruleActionState(ruleId, action) { return !!state.pendingRuleActions[`${ruleId}:${action}`]; }
+    function setRuleActionState(ruleId, action, loading) { state.pendingRuleActions[`${ruleId}:${action}`] = loading; renderRules(state.rules); }
+    function renderRules(items) { const host = $('rulesWrap'); const visible = filterAndSortRules(items); if (!visible.length) { host.innerHTML = '<div class="empty">当前筛选或搜索条件下没有规则。</div>'; return; } host.innerHTML = visible.map(function(item) { const total = item.total || {}; const realtime = (item.realtime || {}).total || {}; const inbound = item.inboundIp ? `入口 ${escapeHtml(item.inboundIp)}` : '入口 任意'; const outbound = item.outboundIp ? `出口 ${escapeHtml(item.outboundIp)}` : '出口 默认'; const diagnosing = ruleActionState(item.id, 'diagnose'); const deleting = ruleActionState(item.id, 'delete'); const name = String(item.name || '').trim(); return `<article class="rule-card"><div class="rule-top"><div>${name ? `<div class="rule-name">${escapeHtml(name)}</div>` : ''}<div class="rule-id">${escapeHtml(item.id)}</div><div class="rule-target">${escapeHtml(item.targetIp)}:${escapeHtml(item.targetPort)}</div><div class="muted">local ${escapeHtml(item.localPort)} · ${escapeHtml(item.protocol)} · ${escapeHtml(item.family)}</div><div class="muted">${inbound} · ${outbound}</div></div><div class="pill">${escapeHtml(item.family)}</div></div><div class="rule-meta"><div class="meta-box"><div class="meta-label">连接限制</div><div class="meta-value">${escapeHtml(item.connLimit ?? 0)}</div></div><div class="meta-box"><div class="meta-label">带宽限制</div><div class="meta-value">${escapeHtml(item.bandwidthKbps ?? 0)} K</div></div><div class="meta-box"><div class="meta-label">累计流量</div><div class="meta-value">${bytes(total.trafficBytes || 0)}</div></div></div><div class="muted">实时 ${rate(realtime.bytesPerSec || 0)} · ${realtime.pktsPerSec || 0} pps · 更新时间 ${formatDate(item.updatedAt)}</div><div class="rule-actions"><button type="button" class="btn-secondary btn-small ${diagnosing ? 'is-loading' : ''}" data-action="diagnose" data-id="${escapeHtml(item.id)}" ${diagnosing ? 'disabled' : ''}>${diagnosing ? '诊断中' : '诊断'}</button><button type="button" class="btn-secondary btn-small" data-action="stats" data-id="${escapeHtml(item.id)}">指标详情</button><button type="button" class="btn-secondary btn-small" data-action="edit" data-id="${escapeHtml(item.id)}">编辑</button><button type="button" class="btn-danger btn-small ${deleting ? 'is-loading' : ''}" data-action="delete" data-id="${escapeHtml(item.id)}" ${deleting ? 'disabled' : ''}>${deleting ? '删除中' : '删除'}</button></div></article>`; }).join(''); }
+    function openModal(id) { $(id).classList.remove('hidden'); }
+    function closeModal(id) { $(id).classList.add('hidden'); if (id === 'statsModal') stopStatsPolling(); }
+    function openCreateRule() { state.ruleFormMode = 'create'; $('ruleFormTitle').textContent = '新增规则'; $('ruleFormSubmit').textContent = '创建规则'; $('ruleForm').reset(); $('ruleFormId').value = ''; $('ruleName').value = ''; $('ruleFamily').value = 'ipv4'; $('ruleProtocol').value = 'all'; $('ruleInboundInterface').value = ''; $('ruleInboundIp').value = ''; $('ruleOutboundInterface').value = ''; $('ruleOutboundIp').value = ''; $('ruleConnLimit').value = 0; $('ruleBandwidth').value = 0; syncRuleAddressSelectors({ inboundInterface: '', inboundIp: '', outboundInterface: '', outboundIp: '' }); openModal('ruleFormModal'); }
+    function openEditRule(rule) { const family = rule.family || 'ipv4'; const inboundInterface = findInterfaceNameByAddress(family, rule.inboundIp || ''); const outboundInterface = findInterfaceNameByAddress(family, rule.outboundIp || ''); state.ruleFormMode = 'edit'; $('ruleFormTitle').textContent = '编辑规则'; $('ruleFormSubmit').textContent = '保存修改'; $('ruleFormId').value = rule.id || ''; $('ruleName').value = rule.name || ''; $('ruleFamily').value = family; $('ruleProtocol').value = rule.protocol || 'all'; $('ruleLocalPort').value = rule.localPort || ''; $('ruleTargetIp').value = rule.targetIp || ''; $('ruleTargetPort').value = rule.targetPort || ''; $('ruleConnLimit').value = rule.connLimit ?? 0; $('ruleBandwidth').value = rule.bandwidthKbps ?? 0; syncRuleAddressSelectors({ inboundInterface: inboundInterface, inboundIp: rule.inboundIp || '', outboundInterface: outboundInterface, outboundIp: rule.outboundIp || '' }); openModal('ruleFormModal'); }
+    function buildRulePayload() { return { name: $('ruleName').value.trim(), family: $('ruleFamily').value, protocol: $('ruleProtocol').value, localPort: Number($('ruleLocalPort').value), inboundIp: $('ruleInboundIp').value.trim(), targetIp: $('ruleTargetIp').value.trim(), targetPort: Number($('ruleTargetPort').value), outboundIp: $('ruleOutboundIp').value.trim(), connLimit: Number($('ruleConnLimit').value || 0), bandwidthKbps: Number($('ruleBandwidth').value || 0) }; }
+    function setRuleFormSaving(loading) { state.savingRule = loading; $('ruleFormSubmit').disabled = loading; $('ruleFormSubmit').classList.toggle('is-loading', loading); $('ruleFormSubmit').textContent = state.ruleFormMode === 'create' ? (loading ? '创建中' : '创建规则') : (loading ? '保存中' : '保存修改'); }
+    async function saveRule(event) { event.preventDefault(); if (state.savingRule) return; const payload = buildRulePayload(); setRuleFormSaving(true); try { if (state.ruleFormMode === 'create') { await apiRequest(state.connection.baseUrl, state.connection.token, '/api/rules', { method: 'POST', body: JSON.stringify(payload) }); showToast('规则创建成功'); } else { await apiRequest(state.connection.baseUrl, state.connection.token, '/api/rules', { method: 'PUT', body: JSON.stringify({ id: $('ruleFormId').value, new: payload }) }); showToast('规则更新成功'); } closeModal('ruleFormModal'); await refreshAll(); } catch (error) { showToast(error.message, 'error'); } finally { setRuleFormSaving(false); } }
+    async function deleteRule(ruleId) { if (ruleActionState(ruleId, 'delete')) return; if (!window.confirm(`确认删除规则 ${ruleId}？`)) return; setRuleActionState(ruleId, 'delete', true); try { await apiRequest(state.connection.baseUrl, state.connection.token, '/api/rules', { method: 'DELETE', body: JSON.stringify({ id: ruleId }) }); showToast('规则已删除'); await refreshAll(); } catch (error) { showToast(error.message, 'error'); } finally { setRuleActionState(ruleId, 'delete', false); } }
+    async function diagnoseRule(ruleId) { if (ruleActionState(ruleId, 'diagnose')) return; setRuleActionState(ruleId, 'diagnose', true); try { const result = await apiRequest(state.connection.baseUrl, state.connection.token, `/api/rules/diagnostics?id=${encodeURIComponent(ruleId)}`); const outbound = result.effectiveOutboundIp || '默认路由'; const latency = Number(result.latencyMs || 0).toFixed(2); showToast(`诊断完成：${latency} ms · 出口 ${outbound}`); } catch (error) { showToast(error.message, 'error'); } finally { setRuleActionState(ruleId, 'diagnose', false); } }
+    function renderStatsBlock(targetId, items, formatter) { const host = $(targetId); const max = Math.max.apply(null, items.map(function(item) { return Number(item.value || 0); }).concat([1])); host.innerHTML = items.map(function(item) { const width = Math.max(6, (Number(item.value || 0) / max) * 100); return `<div class="chart-row"><div class="chart-label">${item.label}</div><div class="chart-track"><div class="chart-fill fill-${item.type}" style="width:${width}%;"></div></div><div class="chart-value mono">${formatter(item.value)}</div></div>`; }).join(''); }
+    function renderStatCards(targetId, items) { $(targetId).innerHTML = items.map(function(item) { return `<div class="network-stat"><div class="label">${item.label}</div><div class="value">${item.value}</div></div>`; }).join(''); }
+    async function loadRuleStats(ruleId) { const metrics = await apiRequest(state.connection.baseUrl, state.connection.token, `/api/rules/metrics?id=${encodeURIComponent(ruleId)}`); const cumulative = metrics.cumulative || {}; const realtime = metrics.realtime || {}; $('statsTitle').textContent = '规则指标详情'; $('statsMeta').textContent = `${metrics.id} · ${metrics.family} · ${metrics.protocol} · ${metrics.targetIp}:${metrics.targetPort}`; renderStatsBlock('cumulativeChart', [{ label: '总流量', type: 'total', value: (cumulative.total || {}).trafficBytes || 0 }, { label: 'TCP', type: 'tcp', value: (cumulative.tcp || {}).trafficBytes || 0 }, { label: 'UDP', type: 'udp', value: (cumulative.udp || {}).trafficBytes || 0 }], bytes); renderStatsBlock('realtimeChart', [{ label: '总吞吐', type: 'total', value: (realtime.total || {}).bytesPerSec || 0 }, { label: 'TCP', type: 'tcp', value: (realtime.tcp || {}).bytesPerSec || 0 }, { label: 'UDP', type: 'udp', value: (realtime.udp || {}).bytesPerSec || 0 }], rate); renderStatCards('packetTotals', [{ label: '总包数', value: `${(cumulative.total || {}).trafficPkts || 0} pkt` }, { label: 'TCP 包数', value: `${(cumulative.tcp || {}).trafficPkts || 0} pkt` }, { label: 'UDP 包数', value: `${(cumulative.udp || {}).trafficPkts || 0} pkt` }]); renderStatCards('packetRates', [{ label: '总 pps', value: `${(realtime.total || {}).pktsPerSec || 0} pps` }, { label: 'TCP pps', value: `${(realtime.tcp || {}).pktsPerSec || 0} pps` }, { label: 'UDP pps', value: `${(realtime.udp || {}).pktsPerSec || 0} pps` }]); $('statsUpdated').textContent = formatUnix(metrics.lastUpdatedUnix); }
+    async function openStats(ruleId) { try { await loadRuleStats(ruleId); openModal('statsModal'); startStatsPolling(ruleId); } catch (error) { showToast(error.message, 'error'); } }
+    async function refreshAll() { if (!state.connection) return; const familyQuery = state.familyFilter === 'all' ? '' : `?family=${encodeURIComponent(state.familyFilter)}`; const results = await Promise.all([apiRequest(state.connection.baseUrl, state.connection.token, '/api/system'), apiRequest(state.connection.baseUrl, state.connection.token, `/api/rules${familyQuery}`)]); state.systemData = results[0]; updateNetworkHistory(state.systemData); state.rules = Array.isArray(results[1]) ? results[1] : []; renderStatus(state.systemData); renderSystem(state.systemData); renderNetwork(state.systemData); renderRules(state.rules); renderNAT(); }
+    function bindEvents() { $('connectForm').addEventListener('submit', function(event) { event.preventDefault(); connectToBackend($('connectUrl').value, $('connectToken').value); }); $('fillCurrentOrigin').addEventListener('click', function() { $('connectUrl').value = window.location.origin; }); $('clearHistoryButton').addEventListener('click', function() { state.history = []; saveHistory(); localStorage.removeItem(LAST_USED_KEY); renderHistory(); }); $('historyList').addEventListener('click', function(event) { const connectId = event.target.getAttribute('data-history-connect'); const deleteId = event.target.getAttribute('data-history-delete'); const card = event.target.closest('[data-history-id]'); if (deleteId) { event.stopPropagation(); removeHistoryItem(deleteId); return; } const historyId = connectId || (card && card.getAttribute('data-history-id')); if (!historyId) return; const entry = state.history.find(function(item) { return item.id === historyId; }); if (!entry) return; $('connectUrl').value = entry.baseUrl; $('connectToken').value = entry.token; connectToBackend(entry.baseUrl, entry.token); }); $('refreshNowButton').addEventListener('click', function() { refreshAll().catch(function(error) { showToast(error.message, 'error'); }); }); $('switchBackendButton').addEventListener('click', function() { showConnectView(state.connection || null); }); $('ruleFamilyFilter').addEventListener('change', function(event) { state.familyFilter = event.target.value; refreshAll().catch(function(error) { showToast(error.message, 'error'); }); }); $('natFamilyFilter').addEventListener('change', function(event) { state.natFamily = event.target.value; renderNAT(); }); $('ruleSearch').addEventListener('input', function(event) { state.ruleSearch = event.target.value; renderRules(state.rules); }); $('ruleSort').addEventListener('change', function(event) { state.ruleSort = event.target.value; renderRules(state.rules); }); $('networkInterfaceSelect').addEventListener('change', function(event) { state.currentInterface = event.target.value; if (state.systemData) renderNetwork(state.systemData); }); $('ruleFamily').addEventListener('change', function() { syncRuleAddressSelectors({ inboundInterface: '', inboundIp: '', outboundInterface: '', outboundIp: '' }); }); $('ruleInboundInterface').addEventListener('change', function() { populateRuleAddressSelect('Inbound', $('ruleFamily').value || 'ipv4', $('ruleInboundInterface').value, ''); }); $('ruleOutboundInterface').addEventListener('change', function() { populateRuleAddressSelect('Outbound', $('ruleFamily').value || 'ipv4', $('ruleOutboundInterface').value, ''); }); $('createRuleButton').addEventListener('click', openCreateRule); $('ruleForm').addEventListener('submit', saveRule); $('rulesWrap').addEventListener('click', function(event) { const button = event.target.closest('button[data-action]'); if (!button) return; const ruleId = button.getAttribute('data-id'); const action = button.getAttribute('data-action'); const rule = state.rules.find(function(item) { return item.id === ruleId; }); if (!rule) return; if (action === 'diagnose') { diagnoseRule(ruleId); return; } if (action === 'stats') { openStats(ruleId); return; } if (action === 'edit') { openEditRule(rule); return; } if (action === 'delete') deleteRule(ruleId); }); document.querySelectorAll('[data-close]').forEach(function(button) { button.addEventListener('click', function() { closeModal(button.getAttribute('data-close')); }); }); document.querySelectorAll('.modal').forEach(function(modal) { modal.addEventListener('click', function(event) { if (event.target === modal) closeModal(modal.id); }); }); }
+    function bootstrap() { loadHistory(); renderHistory(); const latestId = localStorage.getItem(LAST_USED_KEY); const latest = state.history.find(function(item) { return item.id === latestId; }) || state.history[0] || null; $('connectUrl').value = latest ? latest.baseUrl : window.location.origin; $('connectToken').value = latest ? latest.token : ''; bindEvents(); if (latest) { state.connection = { baseUrl: latest.baseUrl, token: latest.token }; showAppView(); connectToBackend(latest.baseUrl, latest.token); } else { showConnectView(null); } }
+    bootstrap();
+  </script>
+</body>
+</html>

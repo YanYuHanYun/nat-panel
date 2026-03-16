@@ -1,0 +1,27 @@
+server:
+  listen: "0.0.0.0:8080"
+
+panel:
+  enabled: true
+
+auth:
+  bearer_token: "your token here"
+
+cors:
+  allow_origins:
+    - "*"
+
+firewall:
+  default_forward_policy: "ACCEPT"
+  ipv4:
+    save_path: "/etc/iptables/rules.v4"
+    enable_masquerade: true
+  ipv6:
+    save_path: "/etc/iptables/rules.v6"
+    enable_masquerade: true
+
+monitor:
+  cpu_interval_seconds: 1
+  network_interval_seconds: 1
+  stats_poll_seconds: 5
+  db_path: "/var/lib/firewall-api/state.db"
