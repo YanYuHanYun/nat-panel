@@ -278,6 +278,7 @@
           <div class="stack-sm">
             <div class="eyebrow">Operations Console</div>
             <div class="title-row"><h1>控制面板</h1><div class="version-note">Version - <span id="appVersion">-</span></div></div>
+            <p>当前连接 <span id="currentBaseUrl" class="mono">-</span></p>
             <div class="hero-meta">
               <span class="pill" id="statusBadge">等待连接</span>
             </div>
@@ -423,9 +424,9 @@
     function stopStatsPolling() { if (state.statsTimer) { window.clearInterval(state.statsTimer); state.statsTimer = null; } state.currentStatsRuleId = null; }
     function startStatsPolling(ruleId) { stopStatsPolling(); state.currentStatsRuleId = ruleId; state.statsTimer = window.setInterval(function() { if (!state.currentStatsRuleId) return; loadRuleStats(state.currentStatsRuleId).catch(function() {}); }, STATS_REFRESH_MS); }
     function showConnectView(prefill) { stopAutoRefresh(); stopStatsPolling(); $('connectView').classList.remove('hidden'); $('appView').classList.add('hidden'); const latest = prefill || state.history[0] || null; $('connectUrl').value = latest ? latest.baseUrl : window.location.origin; $('connectToken').value = latest ? latest.token : ''; renderHistory(); }
-    function showAppView() { $('connectView').classList.add('hidden'); $('appView').classList.remove('hidden'); }
+    function showAppView() { $('connectView').classList.add('hidden'); $('appView').classList.remove('hidden'); $('currentBaseUrl').textContent = state.connection.baseUrl; }
     function setConnecting(loading) { state.connecting = loading; $('connectButton').disabled = loading; $('connectButton').classList.toggle('is-loading', loading); }
-    async function connectToBackend(baseUrl, token) { const normalized = normalizeBaseUrl(baseUrl); if (!normalized || !String(token || '').trim()) { showToast('请输入完整的 URL 和 Token', 'error'); return; } if (state.connecting) return; setConnecting(true); try { await apiRequest(normalized, token, '/api/system'); state.connection = { baseUrl: normalized, token: String(token).trim() }; upsertHistory(state.connection); showAppView(); await refreshAll(); startAutoRefresh(); showToast(`已连接 ${normalized}`); } catch (error) { state.connection = null; showConnectView({ baseUrl: normalized, token: String(token).trim() }); showToast(error.message, 'error'); } finally { setConnecting(false); } }
+    async function connectToBackend(baseUrl, token) { const normalized = normalizeBaseUrl(baseUrl); if (!normalized || !String(token || '').trim()) { showToast('请输入完整的 URL 和 Token', 'error'); return; } if (state.connecting) return; setConnecting(true); try { await apiRequest(normalized, token, '/api/system'); state.connection = { baseUrl: normalized, token: String(token).trim() }; upsertHistory(state.connection); showAppView(); await refreshAll(); startAutoRefresh(); } catch (error) { state.connection = null; showConnectView({ baseUrl: normalized, token: String(token).trim() }); showToast(error.message, 'error'); } finally { setConnecting(false); } }
     function updateNetworkHistory(systemData) {
       const interfaces = ((systemData.network || {}).interfaces) || [];
       const seen = {};
